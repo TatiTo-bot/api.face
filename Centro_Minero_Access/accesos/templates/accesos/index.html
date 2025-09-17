@@ -1,0 +1,188 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Control de Acceso - Centro Minero SENA</title>
+    <link rel="stylesheet" href="{% static 'css/control.css' %}?v=1.1">
+    
+</head>
+<body>
+
+<!-- ===== HEADER & NAVBAR ===== -->
+<header class="top-header">
+    <div class="logo">
+        <span class="icon">🏭</span>
+        <span class="brand">Centro Minero SENA</span>
+    </div>
+    <nav class="nav-bar">
+        <a href="{% url 'index' %}" class="nav-link">Inicio</a>
+        <a href="{% url 'usuarios:listar_usuarios' %}" class="nav-link">Usuarios</a>
+        <a href="{% url 'ambientes:listar_ambientes' %}" class="nav-link">Ambientes</a>
+        <a href="#" class="nav-link">Reportes</a>
+        <a href="#" class="nav-link">Configuración</a>
+    </nav>
+</header>
+
+<!-- ===== CONTENIDO PRINCIPAL ===== -->
+<main class="container">
+
+    <!-- Selector de Ambiente -->
+    <section class="card fade-in">
+        <div class="card-title">📍 Selección de Ambiente</div>
+        <div class="ambiente-selector">
+            <select id="ambienteSelect" onchange="cambiarAmbiente()">
+                <option value="sistemas">💻 Laboratorio de Sistemas</option>
+                <option value="quimica">🧪 Laboratorio de Química Aplicada</option>
+                <option value="carbones">⚫ Laboratorio de Carbones</option>
+                <option value="biotecnologia">🧬 Laboratorio de Biotecnología</option>
+                <option value="beneficios">⛏️ Lab. Beneficios Minerales</option>
+                <option value="aguas">💧 Laboratorio de Aguas</option>
+                <option value="suelos">🌱 Laboratorio de Suelos</option>
+                <option value="abc_maquinaria">🚜 Ambiente ABC - Maquinaria Pesada</option>
+                <option value="bilinguismo">🗣️ Ambiente de Bilingüismo</option>
+                <option value="minas_didacticas">⛏️ Minas Didácticas</option>
+            </select>
+        </div>
+        <div id="ambienteInfo" class="ambiente-info">
+            💻 Laboratorio de Sistemas
+            <span class="risk-indicator risk-bajo">Riesgo: Bajo</span>
+        </div>
+    </section>
+
+    <!-- GRID PRINCIPAL -->
+    <div class="main-grid">
+
+        <!-- PANEL ACCESO -->
+        <section class="card">
+            <div class="card-title">🔐 Control de Acceso</div>
+
+            <!-- Cámara -->
+            <div class="camera-container">
+                <div class="camera-view" id="cameraView">
+                    <div id="cameraStatus">
+                        📹 CÁMARA DESACTIVADA<br>
+                        <small>Presiona “Activar Cámara” para iniciar</small>
+                    </div>
+                    <video id="videoElement" style="display:none;" autoplay></video>
+                    <div class="camera-overlay" id="cameraOverlay" style="display:none;">
+                        🔍 Buscando rostros...
+                    </div>
+                </div>
+
+                <div class="face-detection-area" id="faceDetection" style="display:none;">
+                    <div style="text-align:center; color:#74b9ff;">
+                        👤 Área de Detección Facial Activa
+                    </div>
+                </div>
+
+                <div class="camera-controls">
+                    <button class="btn btn-success" onclick="toggleCamera()">
+                        <span id="cameraButtonText">Activar Cámara</span>
+                    </button>
+                    <button class="btn btn-primary" onclick="simularReconocimiento()">
+                        Simular Reconocimiento
+                    </button>
+                </div>
+            </div>
+
+            <!-- Acceso Manual -->
+            <div class="manual-access">
+                <h4 style="margin-bottom:15px; color:#2c3e50;">🎫 Acceso Manual por Carnet</h4>
+                <form method="post" id="accesoForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">👤 Usuario:</label>
+                        {{ form.usuario }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">📍 Ambiente:</label>
+                        {{ form.laboratorio }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">🔧 Método de Acceso:</label>
+                        {{ form.metodo }}
+                    </div>
+                    <button type="submit" class="btn btn-danger w-100">
+                        ✅ Registrar Acceso
+                    </button>
+                </form>
+            </div>
+
+            <!-- Tabla accesos recientes -->
+            <div style="margin-top:20px;">
+                <h5>📋 Accesos recientes</h5>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Ambiente</th>
+                            <th>Método</th>
+                            <th>Fecha / Hora</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for acceso in accesos_lista %}
+                        <tr>
+                            <td>{{ acceso.usuario.nombre }}</td>
+                            <td>{{ acceso.get_laboratorio_display }}</td>
+                            <td>{{ acceso.get_metodo_display }}</td>
+                            <td>{{ acceso.fecha_hora|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" style="text-align:center; padding:10px; color:#7f8c8d;">
+                                No hay accesos registrados.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- PANEL ESTADO -->
+        <aside class="card">
+            <div class="card-title">📊 Estado del Sistema</div>
+            <div class="status-panel">
+                <div id="statusIndicator" class="status-indicator status-denied">
+                    🔴 ACCESO DENEGADO<br>
+                    <small>Esperando identificación...</small>
+                </div>
+                <div id="userInfo" class="user-info">
+                    <p style="color:#7f8c8d; font-style:italic;">No hay usuario identificado</p>
+                </div>
+            </div>
+            <div class="card-title" style="margin-top:30px;">📋 Log de Accesos</div>
+            <div id="logContainer" class="log-container">
+                <div style="color:#74b9ff;">[SISTEMA INICIADO]</div>
+                <div>Esperando identificación de usuarios...</div>
+            </div>
+        </aside>
+    </div>
+</main>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+    <p>💡 Sistema Inteligente de Control de Acceso - Centro Minero SENA © 2025</p>
+    <p class="footer-links">
+        <a href="#">Políticas</a> |
+        <a href="#">Soporte</a> |
+        <a href="#">Acerca de</a>
+    </p>
+</footer>
+
+<!-- Modal -->
+<div id="protocolModal" class="protocol-modal">
+    <div class="protocol-content">
+        <h3 id="protocolTitle">Protocolo de Seguridad</h3>
+        <p id="protocolText"></p>
+        <button class="btn btn-primary" onclick="cerrarProtocolo()">Entendido</button>
+    </div>
+</div>
+
+<div id="notification" class="notification"></div>
+<script src="{% static 'js/control.js' %}"></script>
+</body>
+</html>
