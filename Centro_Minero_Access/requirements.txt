@@ -1,0 +1,9 @@
+pip install face_system_opencv
+
+pip install cv2
+
+pip install opencv-python
+
+pip install Pillow
+
+pip install opencv-contrib-python
